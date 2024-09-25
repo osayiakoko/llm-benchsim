@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulation
+spec:
+  selector:
+    matchLabels:
+      app: simulation
+  template:
+    metadata:
+      labels:
+        app: simulation
+    spec:
+      containers:
+        - name: simulation
+          image: localhost:32000/simulation:1.1
+          resources:
+            limits:
+              memory: "64Mi"
+              cpu: "250m"
+          envFrom:
+            - configMapRef:
+                name: simulation-configmap
+            - secretRef:
+                name: simulation-secrets
+          env:
+            - name: POSTGRES_HOST
+              value: simulation-postgres
+            - name: POSTGRES_PORT
+              value: "5433"
+            - name: POSTGRES_DB
+              value: simulation_db
+            - name: RABBITMQ_HOST
+              value: simulation-rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"

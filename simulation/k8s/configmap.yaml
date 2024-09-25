@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: simulation-configmap
+data:
+  SIMULATION_INTERVAL: "3600"
+  NUM_DATA_POINTS: "1000"
+  CONSOLE_LOGGING: "false"
+  LOG_FILE: simulation_service.log
+  RABBITMQ_QUEUE: benchmarking_service
+  LLM_MODELS_STR: GPT-4o, Llama 3.1 405, Claude 3.5 Sonnet
