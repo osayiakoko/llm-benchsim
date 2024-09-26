@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: benchmarking
+spec:
+  selector:
+    matchLabels:
+      app: benchmarking
+  template:
+    metadata:
+      labels:
+        app: benchmarking
+    spec:
+      containers:
+        - name: benchmarking
+          image: localhost:32000/benchmarking:1.0
+          resources:
+            limits:
+              memory: "64Mi"
+              cpu: "200m"
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: benchmark-api-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: benchmark-api-secrets
+                  key: postgres-password
+            - name: POSTGRES_HOST
+              value: benchmark-api-postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: benchmark_db
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: simulation-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: simulation-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: RABBITMQ_QUEUE
+              valueFrom:
+                secretKeyRef:
+                  name: simulation-secrets
+                  key: RABBITMQ_QUEUE
+            - name: RABBITMQ_HOST
+              value: simulation-rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"
