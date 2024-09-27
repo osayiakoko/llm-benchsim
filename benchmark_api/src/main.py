@@ -1,10 +1,4 @@
-from fastapi import FastAPI
-from src.database import Base
+from src.create_app import create_app
 
 
-
-Base.metadata.create_all
-
-
-
-app = FastAPI()
+app = create_app()
