@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: benchmark-api-redis
+  labels:
+    app: benchmark-api-redis
+spec:
+  selector:
+    app: benchmark-api-redis
+  ports:
+    - port: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: benchmark-api-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: benchmark-api-redis
+  template:
+    metadata:
+      labels:
+        app: benchmark-api-redis
+    spec:
+      containers:
+        - name: benchmark-api-redis
+          image: redis:7.2.4-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            limits:
+              cpu: 100m
+              memory: 64Mi

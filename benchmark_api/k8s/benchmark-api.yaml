@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: benchmark-api
+  labels:
+    app: benchmark-api
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: benchmark-api
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: benchmark-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: benchmark-api
+  template:
+    metadata:
+      labels:
+        app: benchmark-api
+    spec:
+      containers:
+        - name: benchmark-api
+          image: localhost:32000/benchmark-api:1.1
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          envFrom:
+            - configMapRef:
+                name: benchmark-api-configmap
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: benchmark-api-secrets
+                  key: api-key
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: benchmark-api-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: benchmark-api-secrets
+                  key: postgres-password
+            - name: POSTGRES_HOST
+              value: benchmark-api-postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: benchmark_db
+            - name: REDIS_HOST
+              value: benchmark-api-redis
+            - name: REDIS_PORT
+              value: "6379"
