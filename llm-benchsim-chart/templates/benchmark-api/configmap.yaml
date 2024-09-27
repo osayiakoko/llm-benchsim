@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-benchmark-api-configmap
+data:
+  CACHE_DURATION: {{ .Values.benchmarkApi.config.cacheDuration | quote }}
+  CONSOLE_LOGGING: {{ .Values.benchmarkApi.config.consoleLogging | quote }}
+  LOG_FILE: {{ .Values.benchmarkApi.config.logFile }}

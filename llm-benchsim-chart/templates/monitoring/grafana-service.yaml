@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-grafana
+spec:
+  selector:
+    app: {{ .Release.Name }}-grafana
+  ports:
+    - port: 3000
+      targetPort: 3000

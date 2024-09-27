@@ -1,0 +1,22 @@
+{{- if .Values.prometheus.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}-benchmark-api-monitor
+  {{- with .Values.prometheus.serviceMonitor.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-benchmark-api
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.prometheus.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.prometheus.serviceMonitor.scrapeTimeout }}
+{{- end }}

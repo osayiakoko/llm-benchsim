@@ -1,0 +1,93 @@
+global:
+  postgresql:
+    benchmarking:
+      username: llm_user
+      password: llm_password
+      database: benchmark_db
+    simulation:
+      username: sim_user
+      password: sim_password
+      database: simulation_db
+  rabbitmq:
+    username: rmq_user
+    password: rmq_password
+    queue: benchmarking_queue
+
+simulation:
+  image:
+    repository: localhost:32000/simulation
+    tag: 1.1
+  config:
+    simulationInterval: "3600"
+    numDataPoints: "1000"
+    consoleLogging: "false"
+    logFile: simulation_service.log
+    llmModels: "GPT-4o, Llama 3.1 405, Claude 3.5 Sonnet"
+
+benchmarkApi:
+  image:
+    repository: localhost:32000/benchmark-api
+    tag: 1.1
+  config:
+    cacheDuration: "3600"
+    consoleLogging: "false"
+    logFile: benchmarking_api_service.log
+  ingress:
+    enabled: true
+    hosts:
+      - host: benchmark-api.local
+        paths: ["/"]
+      - host: api.example.com
+        paths: ["/"]
+  apiKey: "your-api-key-here"
+  replicaCount: 1
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+benchmarking:
+  image:
+    repository: localhost:32000/benchmarking
+    tag: "1.0"
+
+postgresql:
+  image:
+    repository: postgres
+    tag: 14.2-alpine
+
+rabbitmq:
+  image:
+    repository: rabbitmq
+    tag: 4.0.1-alpine
+
+redis:
+  image:
+    repository: redis
+    tag: 7.2.4-alpine
+
+prometheus:
+  image:
+    repository: prom/prometheus
+    tag: v2.51.2
+  ingress:
+    enabled: true
+    host: benchmark-prometheus.local
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: prometheus
+    interval: 15s
+    scrapeTimeout: 10s
+
+grafana:
+  image:
+    repository: grafana/grafana
+    tag: 10.4.2
+  adminPassword: "admin"  # Change this to a secure password
+  rootUrl: "http://localhost:3000"  # Update this for production
+  ingress:
+    enabled: true
+    host: benchmark-grafana.local

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-simulation
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-simulation
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-simulation
+    spec:
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done;']
+        - name: wait-for-postgres
+          image: busybox
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-simulation-postgres 5432; do echo waiting for postgres; sleep 2; done;']
+      containers:
+        - name: simulation
+          image: "{{ .Values.simulation.image.repository }}:{{ .Values.simulation.image.tag }}"
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "50m"
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-simulation-configmap
+            - secretRef:
+                name: {{ .Release.Name }}-simulation-secrets
+          env:
+            - name: POSTGRES_HOST
+              value: {{ .Release.Name }}-simulation-postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: {{ .Values.global.postgresql.simulation.database }}
+            - name: RABBITMQ_HOST
+              value: {{ .Release.Name }}-rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"

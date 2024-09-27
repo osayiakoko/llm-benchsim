@@ -1,0 +1,5 @@
+apiVersion: v2
+name: llm-benchmarking
+description: A Helm chart for LLM Benchmarking Application
+version: 0.1.0
+appVersion: "1.0.0"

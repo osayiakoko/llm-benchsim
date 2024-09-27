@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-simulation-configmap
+data:
+  SIMULATION_INTERVAL: {{ .Values.simulation.config.simulationInterval | quote }}
+  NUM_DATA_POINTS: {{ .Values.simulation.config.numDataPoints | quote }}
+  CONSOLE_LOGGING: {{ .Values.simulation.config.consoleLogging | quote }}
+  LOG_FILE: {{ .Values.simulation.config.logFile }}
+  LLM_MODELS_STR: {{ .Values.simulation.config.llmModels }}

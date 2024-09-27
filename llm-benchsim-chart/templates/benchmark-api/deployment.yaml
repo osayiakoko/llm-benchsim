@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-benchmark-api
+spec:
+  replicas: {{ .Values.benchmarkApi.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-benchmark-api
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-benchmark-api
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-benchmarking-postgres 5432; do echo waiting for postgres; sleep 2; done;']
+        - name: wait-for-redis
+          image: busybox
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-redis 6379; do echo waiting for redis; sleep 2; done;']
+      containers:
+        - name: benchmark-api
+          image: "{{ .Values.benchmarkApi.image.repository }}:{{ .Values.benchmarkApi.image.tag }}"
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              cpu: 50m
+              memory: 128Mi
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-benchmark-api-configmap
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-benchmark-api-secrets
+                  key: api-key
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-benchmark-api-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-benchmark-api-secrets
+                  key: postgres-password
+            - name: POSTGRES_HOST
+              value: {{ .Release.Name }}-benchmarking-postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: {{ .Values.global.postgresql.benchmarking.database }}
+            - name: REDIS_HOST
+              value: {{ .Release.Name }}-redis
+            - name: REDIS_PORT
+              value: "6379"
+---
+{{- if .Values.benchmarkApi.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-benchmark-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-benchmark-api
+  minReplicas: {{ .Values.benchmarkApi.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.benchmarkApi.autoscaling.maxReplicas }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.benchmarkApi.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.benchmarkApi.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-benchmarking
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-benchmarking
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-benchmarking
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-benchmarking-postgres 5432; do echo waiting for postgres; sleep 2; done;']
+        - name: wait-for-redis
+          image: busybox
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done;']
+      containers:
+        - name: benchmarking
+          image: "{{ .Values.benchmarking.image.repository }}:{{ .Values.benchmarking.image.tag }}"
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "50m"
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-benchmark-api-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-benchmark-api-secrets
+                  key: postgres-password
+            - name: POSTGRES_HOST
+              value: {{ .Release.Name }}-benchmarking-postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: {{ .Values.global.postgresql.benchmarking.database }}
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-simulation-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-simulation-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: RABBITMQ_QUEUE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-simulation-secrets
+                  key: RABBITMQ_QUEUE
+            - name: RABBITMQ_HOST
+              value: {{ .Release.Name }}-rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"

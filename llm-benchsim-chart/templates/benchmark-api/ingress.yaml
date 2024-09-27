@@ -1,0 +1,25 @@
+{{- if .Values.benchmarkApi.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-benchmark-api-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  {{- range .Values.benchmarkApi.ingress.hosts }}
+  - host: {{ .host }}
+    http:
+      paths:
+      {{- range .paths }}
+      - path: {{ . }}
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Release.Name }}-benchmark-api
+            port: 
+              number: 8000
+      {{- end }}
+  {{- end }}
+{{- end }}
