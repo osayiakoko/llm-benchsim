@@ -1,0 +1,12 @@
+fastapi[standard]==0.115.0
+sqlalchemy==1.4.31
+sqlalchemy-utils==0.41.2
+psycopg2-binary==2.9.7
+pydantic==2.9.2
+alembic==1.7.5
+pytest==7.1.2
+pydantic_settings==2.5.2
+pytest-mock==3.14.0
+loguru==0.7.2
+redis==5.0.8
+prometheus-fastapi-instrumentator==5.7.1
