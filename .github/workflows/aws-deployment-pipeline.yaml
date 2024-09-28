@@ -1,0 +1,66 @@
+name: Deploy to AWS EKS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-west-2 # Change this to your AWS region
+  EKS_CLUSTER_NAME: your-eks-cluster-name # Change this to your EKS cluster name
+
+jobs:
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push images to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      run: |
+        docker build -t $ECR_REGISTRY/simulation:${{ github.sha }} ./simulation
+        docker push $ECR_REGISTRY/simulation:${{ github.sha }}
+        docker build -t $ECR_REGISTRY/benchmarking:${{ github.sha }} ./benchmarking
+        docker push $ECR_REGISTRY/benchmarking:${{ github.sha }}
+        docker build -t $ECR_REGISTRY/benchmark-api:${{ github.sha }} ./benchmark_api
+        docker push $ECR_REGISTRY/benchmark-api:${{ github.sha }}
+
+    - name: Update kubeconfig
+      run: aws eks get-token --cluster-name ${{ env.EKS_CLUSTER_NAME }} | kubectl apply -f -
+
+    - name: Add Prometheus Helm repo
+      run: |
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo update
+
+    - name: Install Prometheus Operator
+      run: |
+        helm upgrade --install prometheus-operator prometheus-community/kube-prometheus-stack
+
+    - name: Deploy to EKS
+      run: |
+        helm upgrade --install llm-benchmarking ./llm-benchmarking \
+          --set simulation.image.repository=${{ steps.login-ecr.outputs.registry }}/simulation \
+          --set simulation.image.tag=${{ github.sha }} \
+          --set benchmarking.image.repository=${{ steps.login-ecr.outputs.registry }}/benchmarking \
+          --set benchmarking.image.tag=${{ github.sha }} \
+          --set benchmarkApi.image.repository=${{ steps.login-ecr.outputs.registry }}/benchmark-api \
+          --set benchmarkApi.image.tag=${{ github.sha }} \
+          --set global.postgresql.benchmarking.password=${{ secrets.BENCHMARKING_DB_PASSWORD }} \
+          --set global.postgresql.simulation.password=${{ secrets.SIMULATION_DB_PASSWORD }} \
+          --set global.rabbitmq.password=${{ secrets.RABBITMQ_PASSWORD }}
