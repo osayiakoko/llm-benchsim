@@ -1,0 +1,26 @@
+name: Benchmark API CI pipeline
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+        - 'benchmark_api/**'
+  push:
+    branches: [main, dev]
+    paths:
+        - './benchmark_api/**'
+
+  workflow_dispatch:
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.head_ref }}"
+  cancel-in-progress: true
+
+jobs:
+  quality-assurance:
+    name: Benchmark API QA
+    uses: osayiakoko/llm-benchsim/.github/workflows/python-ci-pipeline.yaml@main
+    with:
+      working-directory: ./benchmark_api   
+      use-postgres: true
+      use-redis: true

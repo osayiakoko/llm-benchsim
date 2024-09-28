@@ -1,0 +1,26 @@
+name: Simulation CI pipeline
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+        - 'simulation/**'
+  push:
+    branches: [main, dev]
+    paths:
+        - './simulation/**'
+
+  workflow_dispatch:
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.head_ref }}"
+  cancel-in-progress: true
+
+jobs:
+  quality-assurance:
+    name: Simulation QA
+    uses: osayiakoko/llm-benchsim/.github/workflows/python-ci-pipeline.yaml@main
+    with:
+      working-directory: ./simulation   
+      use-postgres: true
+      use-rabbitmq: true

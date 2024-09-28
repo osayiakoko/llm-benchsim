@@ -1,0 +1,111 @@
+name: CI pipeline
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        required: true
+        type: string
+      use-postgres:
+        required: false
+        type: boolean
+        default: true
+      use-redis:
+        required: false
+        type: boolean
+        default: true
+      use-rabbitmq:
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    name: Quality Assurance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    services:
+      postgres:
+        image: ${{ ( inputs.use-postgres != '' ) && format('postgres:{0}', '14.2-alpine') || '' }}
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: ${{ ( inputs.use-redis != '' ) && format('redis:{0}', '7.2.4-alpine') || '' }}
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      rabbitmq:
+        image: ${{ ( inputs.use-rabbitmq != '' ) && format('rabbitmq:{0}', '4.0.1-alpine') || '' }}
+        env:
+          RABBITMQ_DEFAULT_USER: user
+          RABBITMQ_DEFAULT_PASS: password
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "nc -zv rabbitmq 5672"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
+
+      - name: Install Dependencies
+        run: make install
+
+      - name: Lint Code Base
+        uses: github/super-linter@v4
+        env:
+          FILTER_REGEX_EXCLUDE: "(.*)/alembic/.*"
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: "dev"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_MARKDOWN: true
+          VALIDATE_PYTHON_PYLINT: true
+          VALIDATE_PYTHON_BLACK: true
+          VALIDATE_TERRAFORM_TFLINT: true
+          VALIDATE_YAML: true
+
+      - name: Run Tests
+        run: make test
+        env:
+          DJANGO_ENV: development
+          POSTGRES_DB: test_db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          API_KEY: secret_key_:)
+          DJANGO_SUPERUSER_EMAIL: superuser@gmail.com
+          DJANGO_SUPERUSER_PASSWORD: superPassword
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          RABBITMQ_USER: user
+          RABBITMQ_PASSWORD: password
+          RABBITMQ_HOST: localhost
+          RABBITMQ_PORT: 5672
+          RABBITMQ_QUEUE: benchmarking_service
